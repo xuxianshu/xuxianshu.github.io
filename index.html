@@ -189,7 +189,7 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 let recognition;
 let isRecognizing = false;
 let userInteracted = false; // For autoplay policy
-let synthesisVoices = []; // To store available voices
+let ttsAudio = new Audio(); // Reusable audio element for Google TTS
 
 if (SpeechRecognition) {
   const SR = SpeechRecognition;
@@ -202,21 +202,6 @@ if (SpeechRecognition) {
   recordBtn.disabled = true;
   recordBtn.style.display = 'none';
 }
-
-// Function to load voices
-const loadVoices = () => {
-    synthesisVoices = window.speechSynthesis.getVoices();
-};
-
-// Load voices when they are ready
-if (window.speechSynthesis) {
-    // Some browsers load voices instantly, others need the event
-    loadVoices();
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = loadVoices;
-    }
-}
-
 
 // --- Game Data ---
 const weekdays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
@@ -238,40 +223,34 @@ const QUESTIONS_PER_STAGE = 4;
 const MAX_STAGES = 5;
 
 // --- Helper Functions ---
-window.addEventListener('pointerdown', () => { userInteracted = true; }, { once: true });
-
 function speak(text, lang = 'zh-CN', callback) {
-    if (!text || !userInteracted || !window.speechSynthesis) {
+    if (!text || !userInteracted) {
         if (callback) callback();
         return;
     }
 
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-
-    let chineseVoice = synthesisVoices.find(voice => voice.lang.startsWith('zh-CN'));
-    if (!chineseVoice) {
-        chineseVoice = synthesisVoices.find(voice => voice.lang.startsWith('zh'));
-    }
+    // Stop any currently playing audio on the same element
+    ttsAudio.pause();
+    ttsAudio.currentTime = 0;
     
-    if (chineseVoice) {
-        utterance.voice = chineseVoice;
-    } else {
-        console.warn("Chinese TTS voice not found. Using default.");
-    }
-
-    utterance.onend = () => {
+    ttsAudio.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(text)}&tl=${lang}`;
+    
+    // Define the onended handler
+    const onEnd = () => {
         if (callback) callback();
-    };
-    utterance.onerror = (e) => {
-        console.error("SpeechSynthesisUtterance error", e);
-        if (callback) callback();
+        ttsAudio.removeEventListener('ended', onEnd);
+        ttsAudio.removeEventListener('error', onEnd); // Also clean up on error
     };
 
-    window.speechSynthesis.speak(utterance);
+    ttsAudio.addEventListener('ended', onEnd);
+    ttsAudio.addEventListener('error', onEnd); // Treat error as end to not block the app
+
+    ttsAudio.play().catch(error => {
+        console.error("Audio play failed:", error);
+        onEnd(); // Ensure callback is called even if play fails
+    });
 }
+
 function convertFullPhraseToPinyin(text) { if (!text) return ''; const words = Object.keys(pinyinMap).sort((a, b) => b.length - a.length); let remainingText = text; let pinyinText = ''; while (remainingText.length > 0) { let found = false; for (const word of words) { if (remainingText.startsWith(word)) { pinyinText += pinyinMap[word] + ' '; remainingText = remainingText.substring(word.length); found = true; break; } } if (!found) { let char = remainingText[0]; let numKey = Object.keys(chineseNumbers).find(key => chineseNumbers[key] === char); if(numKey && pinyinMap[numKey]){ pinyinText += pinyinMap[numKey] + ' '; } else { pinyinText += char; } remainingText = remainingText.substring(1); } } return pinyinText.trim().replace(/\s+/g, ' '); }
 function getChineseMinute(minute) { if (minute === 0) return ''; if (minute < 10) return chineseNumbers[minute.toString()]; if (minute === 10) return '十'; if (minute < 20) return '十' + chineseNumbers[(minute % 10).toString()]; const tens = Math.floor(minute / 10); const ones = minute % 10; return chineseNumbers[tens.toString()] + '十' + (ones > 0 ? chineseNumbers[ones.toString()] : ''); }
 function updateCalendar(month, day, dayOfWeek) { calendarMonthEl.textContent = `${month}월`; calendarDayEl.textContent = day; calendarWeekdayEl.textContent = weekdaysKorean[dayOfWeek]; }
@@ -561,8 +540,19 @@ function showFinalResultPopup() {
 
 // --- Event Listeners ---
 startBtn.addEventListener('click', () => {
-    userInteracted = true; // Add this line to explicitly give audio permission
-    startNewRound();
+    if (userInteracted) {
+        startNewRound();
+        return;
+    }
+    userInteracted = true;
+    // Unlock audio context by playing a silent sound
+    ttsAudio.play().then(() => {
+        startNewRound();
+    }).catch(error => {
+        console.warn("Audio context could not be unlocked on first click:", error);
+        // Still start the round even if unlock fails, it might work later.
+        startNewRound();
+    });
 });
 nextBtn.addEventListener('click', () => { if (questionNumberInStage >= QUESTIONS_PER_STAGE) { showStageResultPopup(); } else { questionNumberInStage++; generateNewQuestion(); } });
 nextStageBtn.addEventListener('click', () => { stageResultPopupEl.classList.add('hidden'); stageResultPopupEl.classList.remove('flex'); currentStage++; questionNumberInStage = 1; if (currentStage > MAX_STAGES) { showFinalResultPopup(); } else { generateNewQuestion(); } });
