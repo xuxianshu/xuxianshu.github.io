@@ -186,17 +186,17 @@ const nextBtn = document.getElementById('next-btn');
 
 // --- Speech API Setup ---
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
 let recognition;
 let isRecognizing = false;
 let userInteracted = false; // For autoplay policy
-let ttsAudio = new Audio(); // Reusable audio element for Google TTS
 
 if (SpeechRecognition) {
   const SR = SpeechRecognition;
   recognition = new SR();
   recognition.lang = 'zh-CN';
   recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
+  recognition.maxAlternatives = 1; // Stability improvement
 } else {
   startErrorEl.textContent = '이 브라우저는 음성 인식을 지원하지 않습니다.';
   recordBtn.disabled = true;
@@ -210,8 +210,8 @@ const timePeriodKorean = { "上午": "오전", "下午": "오후", "晚上": "�
 const morningActivities = ['起床', '吃早饭', '上学', '上课', '出发'];
 const afternoonActivities = ['吃午饭', '吃麻辣烫', '喝水', '喝可乐', '下课', '放学', '去中国', '去北京', '去长城', '到北京', '到天安门'];
 const eveningActivities = ['吃晚饭', '吃北京烤鸭', '回家', '睡觉', '看京剧', '喝水', '喝可乐'];
-const chineseNumbers = { '0': '零', '1': '一', '2': '二', '3': '三', '4': '四', '5': '五', '6': '六', '7': '七', '8': '八', '9': '九', '10': '十', '11': '十一', '12': '十二', '13': '十三', '14': '十四', '15': '十五', '16': '十六', '17': '十七', '18': '十八', '19': '十九', '20': '二十', '21': '二十一', '22': '二十二', '23': '二十三', '24': '二十四', '25': '二十五', '26': '二十六', '27': '二十七', '28': '二十八', '29': '二十九', '30': '三十', '31': '三十一' };
-const pinyinMap = { '1':'yī','2':'èr','3':'sān','4':'sì','5':'wǔ','6':'liù','7':'qī','8':'bā','9':'jiǔ','10':'shí','11':'shíyī','12':'shíèr','月':'yuè','号':'hào','日':'rì','天':'tiān','星期':'xīngqī','星期天':'xīngqītiān','上':'shàng','午':'wǔ','下':'xià','晚':'wǎn','现':'xiàn','在':'zài','几':'jǐ','点':'diǎn','分':'fēn','你':'nǐ','我':'wǒ','做':'zuò','什':'shén','么':'me','今':'jīn','昨':'zuó','明':'míng','生':'shēng','的':'de','是':'shì', '两':'liǎng','半': 'bàn', '一刻': 'yí kè', '三刻': 'sān kè','上午':'shàngwǔ', '下午':'xiàwǔ', '晚上':'wǎnshang','起床':'qǐchuáng','吃早饭':'chī zǎofàn','吃晚饭':'chī wǎnfàn','吃午饭':'chī wǔfàn','吃麻辣烫':'chī málàtàng','吃北京烤鸭':'chī Běijīng kǎoyā','喝水':'hē shuǐ','喝可乐':'hē kělè','上学':'shàngxué','放学':'fàngxué','上课':'shàngkè','下课':'xiàkè','回家':'huíjiā','睡觉':'shuìjiào','出发':'chūfā','去中国':'qù Zhōngguó','去北京':'qù Běijīng','去长城':'qù Chángchéng','到北京':'dào Běijīng','到天安门':'dào Tiānānmén','看京剧':'kàn jīngjù', '他':'tā' };
+const chineseNumbers = { '0': '零', '1': '一', '2': '二', '3': '三', '4': '四', '5': '五', '6': '六', '7': '七', '8': '八', '9': '九', '10': '十', '11': '十一', '12': '十二', '13': '十三', '14': '십四', '15': '십오', '16': '십육', '17': '십칠', '18': '십팔', '19': '십구', '20': '이십', '21': '이십일', '22': '이십이', '23': '이십삼', '24': '이십사', '25': '이십오', '26': '이십육', '27': '이십칠', '28': '이십팔', '29': '이십구', '30': '삼십', '31': '삼십일' };
+const pinyinMap = { '1':'yī','2':'èr','3':'sān','4':'sì','5':'wǔ','6':'liù','7':'qī','8':'bā','9':'jiǔ','10':'shí','11':'shíyī','12':'shíèr','월':'yuè','호':'hào','일':'rì','천':'tiān','성기':'xīngqī','성기천':'xīngqītiān','상':'shàng','오':'wǔ','하':'xià','만':'wǎn','현':'xiàn','재':'zài','기':'jǐ','점':'diǎn','분':'fēn','너':'nǐ','나':'wǒ','하다':'zuò','뭐':'shén','또는':'me','오늘':'jīn','어제':'zuó','내일':'míng','생':'shēng','의':'de','이다':'shì', '양':'liǎng','반': 'bàn', '한 각': 'yí kè', '삼각': 'sān kè','상오':'shàngwǔ', '하오':'xiàwǔ', '만상':'wǎnshang','기상':'qǐchuáng','조식':'chī zǎofàn','석식':'chī wǎnfàn','중식':'chī wǔfàn','매라탕 먹다':'chī málàtàng','북경오리구이 먹다':'chī Běijīng kǎoyā','물마시다':'hē shuǐ','콜라마시다':'hē kělè','등교':'shàngxué','하교':'fàngxué','수업':'shàngkè','수업끝':'xiàkè','집회':'huíjiā','잠':'shuìjiào','출발':'chūfā','중국가다':'qù Zhōngguó','북경가다':'qù Běijīng','만리장성가다':'qù Chángchéng','북경도착':'dào Běijīng','천안문도착':'dào Tiānānmén','경극보다':'kàn jīngjù', '그':'tā' };
 
 // --- Game State ---
 let currentQuestion = {};
@@ -223,36 +223,37 @@ const QUESTIONS_PER_STAGE = 4;
 const MAX_STAGES = 5;
 
 // --- Helper Functions ---
+window.addEventListener('pointerdown', () => { userInteracted = true; }, { once: true });
+
 function speak(text, lang = 'zh-CN', callback) {
     if (!text || !userInteracted) {
         if (callback) callback();
         return;
     }
 
-    // Stop any currently playing audio on the same element
-    ttsAudio.pause();
-    ttsAudio.currentTime = 0;
-    
-    ttsAudio.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(text)}&tl=${lang}`;
-    
-    // Define the onended handler
-    const onEnd = () => {
+    if (window.currentAudio && !window.currentAudio.paused) {
+        window.currentAudio.pause();
+    }
+    const encodedText = encodeURIComponent(text);
+    const audio = new Audio(`https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=${lang}&client=tw-ob`);
+    window.currentAudio = audio;
+
+    const onAudioEnd = () => {
         if (callback) callback();
-        ttsAudio.removeEventListener('ended', onEnd);
-        ttsAudio.removeEventListener('error', onEnd); // Also clean up on error
+        audio.removeEventListener('ended', onAudioEnd);
+        audio.removeEventListener('error', onAudioEnd);
     };
 
-    ttsAudio.addEventListener('ended', onEnd);
-    ttsAudio.addEventListener('error', onEnd); // Treat error as end to not block the app
+    audio.addEventListener('ended', onAudioEnd);
+    audio.addEventListener('error', onAudioEnd);
 
-    ttsAudio.play().catch(error => {
-        console.error("Audio play failed:", error);
-        onEnd(); // Ensure callback is called even if play fails
+    audio.play().catch(() => {
+        console.error("TTS Audio play() was rejected.");
+        onAudioEnd(); // Ensure callback is called even on play failure
     });
 }
-
 function convertFullPhraseToPinyin(text) { if (!text) return ''; const words = Object.keys(pinyinMap).sort((a, b) => b.length - a.length); let remainingText = text; let pinyinText = ''; while (remainingText.length > 0) { let found = false; for (const word of words) { if (remainingText.startsWith(word)) { pinyinText += pinyinMap[word] + ' '; remainingText = remainingText.substring(word.length); found = true; break; } } if (!found) { let char = remainingText[0]; let numKey = Object.keys(chineseNumbers).find(key => chineseNumbers[key] === char); if(numKey && pinyinMap[numKey]){ pinyinText += pinyinMap[numKey] + ' '; } else { pinyinText += char; } remainingText = remainingText.substring(1); } } return pinyinText.trim().replace(/\s+/g, ' '); }
-function getChineseMinute(minute) { if (minute === 0) return ''; if (minute < 10) return chineseNumbers[minute.toString()]; if (minute === 10) return '十'; if (minute < 20) return '十' + chineseNumbers[(minute % 10).toString()]; const tens = Math.floor(minute / 10); const ones = minute % 10; return chineseNumbers[tens.toString()] + '十' + (ones > 0 ? chineseNumbers[ones.toString()] : ''); }
+function getChineseMinute(minute) { if (minute === 0) return ''; if (minute < 10) return chineseNumbers[minute.toString()]; if (minute === 10) return '십'; if (minute < 20) return '십' + chineseNumbers[(minute % 10).toString()]; const tens = Math.floor(minute / 10); const ones = minute % 10; return chineseNumbers[tens.toString()] + '십' + (ones > 0 ? chineseNumbers[ones.toString()] : ''); }
 function updateCalendar(month, day, dayOfWeek) { calendarMonthEl.textContent = `${month}월`; calendarDayEl.textContent = day; calendarWeekdayEl.textContent = weekdaysKorean[dayOfWeek]; }
 function updateDigitalClock(hour, minute, timePeriod) { const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour); const formattedHour = displayHour.toString().padStart(2, '0'); const formattedMinute = minute.toString().padStart(2, '0'); digitalTimeEl.textContent = `${formattedHour}:${formattedMinute}`; digitalTimePeriodEl.textContent = timePeriodKorean[timePeriod]; }
 function updateProgressTracker() { const stageNames = ["", "날짜 묻기", "요일 묻기", "시간 묻기", "일과 묻기", "랜덤 묻기"]; stageInfoEl.textContent = `단계 ${currentStage}: ${stageNames[currentStage]}`; questionProgressEl.textContent = `${questionNumberInStage}/${QUESTIONS_PER_STAGE}`; }
@@ -282,11 +283,11 @@ function generateNewQuestion() {
         case 0: 
             questionText = "现在几点？"; 
             questionPinyin = "xiànzài jǐ diǎn?"; 
-            answerKeywords = [timePeriod, (displayHour === 2 ? '两' : displayHour.toString()), '点']; 
-            altAnswerKeywords = [timePeriod, (displayHour === 2 ? '两' : chineseNumbers[displayHour.toString()]), '点']; 
+            answerKeywords = [timePeriod, (displayHour === 2 ? '두' : displayHour.toString()), '점']; 
+            altAnswerKeywords = [timePeriod, (displayHour === 2 ? '두' : chineseNumbers[displayHour.toString()]), '점']; 
             if(minute > 0) { 
-                answerKeywords.push(minute.toString(), '分'); 
-                altAnswerKeywords.push(getChineseMinute(minute), '分'); 
+                answerKeywords.push(minute.toString(), '분'); 
+                altAnswerKeywords.push(getChineseMinute(minute), '분'); 
             } 
             break;
         case 1: { 
@@ -295,25 +296,25 @@ function generateNewQuestion() {
             if (questionSubType === 'today') { 
                 questionText = "今天几月几号？"; 
                 questionPinyin = "jīntiān jǐ yuè jǐ hào?"; 
-                answerKeywords = [month.toString(), '月', day.toString(), '号']; 
-                altAnswerKeywords = [chineseNumbers[month.toString()], '月', chineseNumbers[day.toString()], '号']; 
+                answerKeywords = [month.toString(), '월', day.toString(), '호']; 
+                altAnswerKeywords = [chineseNumbers[month.toString()], '월', chineseNumbers[day.toString()], '호']; 
             } else if (questionSubType === 'tomorrow') { 
                 const tomorrow = getDateInfo({month, day}, 1); 
                 questionText = "明天几月几号？"; 
                 questionPinyin = "míngtiān jǐ yuè jǐ hào?"; 
-                answerKeywords = [tomorrow.month.toString(), '月', tomorrow.day.toString(), '号']; 
-                altAnswerKeywords = [chineseNumbers[tomorrow.month.toString()], '月', chineseNumbers[tomorrow.day.toString()], '号']; 
+                answerKeywords = [tomorrow.month.toString(), '월', tomorrow.day.toString(), '호']; 
+                altAnswerKeywords = [chineseNumbers[tomorrow.month.toString()], '월', chineseNumbers[tomorrow.day.toString()], '호']; 
             } else if (questionSubType === 'yesterday') { 
                 const yesterday = getDateInfo({month, day}, -1); 
                 questionText = "昨天几月几号？"; 
                 questionPinyin = "zuótiān jǐ yuè jǐ hào?"; 
-                answerKeywords = [yesterday.month.toString(), '月', yesterday.day.toString(), '号']; 
-                altAnswerKeywords = [chineseNumbers[yesterday.month.toString()], '月', chineseNumbers[yesterday.day.toString()], '号']; 
+                answerKeywords = [yesterday.month.toString(), '월', yesterday.day.toString(), '호']; 
+                altAnswerKeywords = [chineseNumbers[yesterday.month.toString()], '월', chineseNumbers[yesterday.day.toString()], '호']; 
             } else { 
                 questionText = "他的生日几月几号？"; 
                 questionPinyin = "tā de shēngrì jǐ yuè jǐ hào?"; 
-                answerKeywords = [hisBirthday.month.toString(), '月', hisBirthday.day.toString(), '号']; 
-                altAnswerKeywords = [chineseNumbers[hisBirthday.month.toString()], '月', chineseNumbers[hisBirthday.day.toString()], '号']; 
+                answerKeywords = [hisBirthday.month.toString(), '월', hisBirthday.day.toString(), '호']; 
+                altAnswerKeywords = [chineseNumbers[hisBirthday.month.toString()], '월', chineseNumbers[hisBirthday.day.toString()], '호']; 
             }
             break; 
         }
@@ -341,11 +342,11 @@ function generateNewQuestion() {
         case 3: 
             questionText = `他几点${activity}？`; 
             questionPinyin = `tā jǐ diǎn ${pinyinMap[activity]}?`; 
-            answerKeywords = ['他', timePeriod, (displayHour === 2 ? '两' : displayHour.toString()), '点']; 
-            altAnswerKeywords = ['他', timePeriod, (displayHour === 2 ? '两' : chineseNumbers[displayHour.toString()]), '点']; 
+            answerKeywords = ['그', timePeriod, (displayHour === 2 ? '두' : displayHour.toString()), '점']; 
+            altAnswerKeywords = ['그', timePeriod, (displayHour === 2 ? '두' : chineseNumbers[displayHour.toString()]), '점']; 
             if (minute > 0) { 
-                answerKeywords.push(minute.toString(), '分'); 
-                altAnswerKeywords.push(getChineseMinute(minute), '分'); 
+                answerKeywords.push(minute.toString(), '분'); 
+                altAnswerKeywords.push(getChineseMinute(minute), '분'); 
             } 
             answerKeywords.push(activity); 
             altAnswerKeywords.push(activity); 
@@ -374,9 +375,9 @@ function generateNewQuestion() {
 
 function validateAnswer(transcript) {
     transcript = transcript.replace(/[의啊。，]/g, '').trim();
-    // For 2 o'clock, consistently use '两点' for checking, as '二点' is less common for time.
+    // For 2 o'clock, consistently use '두점' for checking, as '이점' is less common for time.
     if (currentQuestion.displayHour === 2) { 
-        transcript = transcript.replace(/二点/g, '两点'); 
+        transcript = transcript.replace(/이점/g, '두점'); 
     }
 
     const q = currentQuestion;
@@ -386,39 +387,39 @@ function validateAnswer(transcript) {
         // 1. Check for required non-time keywords
         if (!transcript.includes(q.timePeriod)) return false;
         if (q.questionType === 3) {
-            if (!transcript.includes('他') || !transcript.includes(q.activity)) return false;
+            if (!transcript.includes('그') || !transcript.includes(q.activity)) return false;
         }
         
         // 2. Check for the hour part
         const hourNumStr = q.displayHour.toString();
-        const hourHanziStr = (q.displayHour === 2 ? '两' : chineseNumbers[hourNumStr]);
+        const hourHanziStr = (q.displayHour === 2 ? '두' : chineseNumbers[hourNumStr]);
         
-        // Must contain "3点" OR "三点".
-        const hasHour = transcript.includes(hourNumStr + '点') || transcript.includes(hourHanziStr + '点');
+        // Must contain "3점" OR "삼점".
+        const hasHour = transcript.includes(hourNumStr + '점') || transcript.includes(hourHanziStr + '점');
         
         if (!hasHour) return false;
 
         // 3. Check for the minute part
         if (q.minute === 0) {
             // For o'clock sharp, shouldn't have minute-related words
-            return !transcript.includes('分') && !transcript.includes('刻') && !transcript.includes('半');
+            return !transcript.includes('분') && !transcript.includes('각') && !transcript.includes('반');
         }
         if (q.minute === 15) {
-            return transcript.includes('十五分') || transcript.includes('一刻');
+            return transcript.includes('십오분') || transcript.includes('일각');
         }
         if (q.minute === 30) {
-            // "半" is used without "分"
-            return transcript.includes('三十分') || (transcript.includes('半') && !transcript.includes('分'));
+            // "반" is used without "분"
+            return transcript.includes('삼십분') || (transcript.includes('반') && !transcript.includes('분'));
         }
         if (q.minute === 45) {
-            return transcript.includes('四十五分') || transcript.includes('三刻');
+            return transcript.includes('사십오분') || transcript.includes('삼각');
         }
         
         // For all other minutes, check for numeric or Hanzi version
         const minuteNumStr = q.minute.toString();
         const minuteHanziStr = getChineseMinute(q.minute);
 
-        const hasMinute = transcript.includes(minuteNumStr + '分') || transcript.includes(minuteHanziStr + '分');
+        const hasMinute = transcript.includes(minuteNumStr + '분') || transcript.includes(minuteHanziStr + '분');
         return hasMinute;
     }
 
@@ -428,17 +429,17 @@ function validateAnswer(transcript) {
         isCorrect = q.altAnswerKeywords.every(keyword => transcript.includes(keyword));
     }
     
-    // Add '日' as an alternative to '号' for dates
+    // Add '일' as an alternative to '호' for dates
     if (q.questionType === 1 && !isCorrect) { 
-        const altKeywordsWithRi = q.answerKeywords.map(k => k === '号' ? '日' : k); 
+        const altKeywordsWithRi = q.answerKeywords.map(k => k === '호' ? '일' : k); 
         isCorrect = altKeywordsWithRi.every(keyword => transcript.includes(keyword)); 
         if (!isCorrect && q.altAnswerKeywords) { 
-            const altKeywordsWithRiHanzi = q.altAnswerKeywords.map(k => k === '号' ? '日' : k); 
+            const altKeywordsWithRiHanzi = q.altAnswerKeywords.map(k => k === '호' ? '일' : k); 
             isCorrect = altKeywordsWithRiHanzi.every(keyword => transcript.includes(keyword)); 
         } 
     }
     
-    // Add '星期天' as an alternative to '星期日' for Sunday
+    // Add '성기천' as an alternative to '성기일' for Sunday
     if (q.questionType === 2 && !isCorrect && (q.answerKeywords[0] === "星期日" || q.answerKeywords[0] === "星期天")) {
         if (transcript.includes("星期日") || transcript.includes("星期天")) {
             isCorrect = true;
@@ -470,15 +471,15 @@ function renderResultLog(logContainer, logs) {
         const colorClass = log.isCorrect ? 'bg-green-100' : 'bg-red-100';
         let modelAnswer = '';
         const q = log.question;
-        let timePart = `${q.timePeriod}${q.displayHour === 2 ? '两' : chineseNumbers[q.displayHour.toString()]}点`;
-        if (q.minute > 0) { if (q.minute === 15) timePart += '一刻'; else if (q.minute === 30) timePart += '半'; else if (q.minute === 45) timePart += '三刻'; else timePart += getChineseMinute(q.minute) + '分'; }
+        let timePart = `${q.timePeriod}${q.displayHour === 2 ? '두' : chineseNumbers[q.displayHour.toString()]}점`;
+        if (q.minute > 0) { if (q.minute === 15) timePart += '일각'; else if (q.minute === 30) timePart += '반'; else if (q.minute === 45) timePart += '삼각'; else timePart += getChineseMinute(q.minute) + '분'; }
         switch(q.questionType) {
             case 0: modelAnswer = timePart; break;
             case 1: {
-                if (q.questionSubType === 'today') { modelAnswer = `${chineseNumbers[q.month.toString()]}月${chineseNumbers[q.day.toString()]}号`; }
-                else if (q.questionSubType === 'tomorrow') { const tomorrow = getDateInfo({month: q.month, day: q.day}, 1); modelAnswer = `${chineseNumbers[tomorrow.month.toString()]}月${chineseNumbers[tomorrow.day.toString()]}号`; }
-                else if (q.questionSubType === 'yesterday') { const yesterday = getDateInfo({month: q.month, day: q.day}, -1); modelAnswer = `${chineseNumbers[yesterday.month.toString()]}月${chineseNumbers[yesterday.day.toString()]}号`; }
-                else { modelAnswer = `他的生日${chineseNumbers[hisBirthday.month.toString()]}月${chineseNumbers[hisBirthday.day.toString()]}号`; }
+                if (q.questionSubType === 'today') { modelAnswer = `${chineseNumbers[q.month.toString()]}월${chineseNumbers[q.day.toString()]}호`; }
+                else if (q.questionSubType === 'tomorrow') { const tomorrow = getDateInfo({month: q.month, day: q.day}, 1); modelAnswer = `${chineseNumbers[tomorrow.month.toString()]}월${chineseNumbers[tomorrow.day.toString()]}호`; }
+                else if (q.questionSubType === 'yesterday') { const yesterday = getDateInfo({month: q.month, day: q.day}, -1); modelAnswer = `${chineseNumbers[yesterday.month.toString()]}월${chineseNumbers[yesterday.day.toString()]}호`; }
+                else { modelAnswer = `그의 생일${chineseNumbers[hisBirthday.month.toString()]}월${chineseNumbers[hisBirthday.day.toString()]}호`; }
                 break;
             }
             case 2: {
@@ -488,7 +489,7 @@ function renderResultLog(logContainer, logs) {
                  if (modelAnswer === "星期日") modelAnswer = "星期日 / 星期天";
                  break;
             }
-            case 3: modelAnswer = `他${timePart}${q.activity}`; break;
+            case 3: modelAnswer = `그${timePart}${q.activity}`; break;
         }
         logWrapper.innerHTML = `
         <div class="p-3 rounded-lg text-sm bg-sky-100 text-sky-800 mb-2">
@@ -540,19 +541,7 @@ function showFinalResultPopup() {
 
 // --- Event Listeners ---
 startBtn.addEventListener('click', () => {
-    if (userInteracted) {
-        startNewRound();
-        return;
-    }
-    userInteracted = true;
-    // Unlock audio context by playing a silent sound
-    ttsAudio.play().then(() => {
-        startNewRound();
-    }).catch(error => {
-        console.warn("Audio context could not be unlocked on first click:", error);
-        // Still start the round even if unlock fails, it might work later.
-        startNewRound();
-    });
+    startNewRound();
 });
 nextBtn.addEventListener('click', () => { if (questionNumberInStage >= QUESTIONS_PER_STAGE) { showStageResultPopup(); } else { questionNumberInStage++; generateNewQuestion(); } });
 nextStageBtn.addEventListener('click', () => { stageResultPopupEl.classList.add('hidden'); stageResultPopupEl.classList.remove('flex'); currentStage++; questionNumberInStage = 1; if (currentStage > MAX_STAGES) { showFinalResultPopup(); } else { generateNewQuestion(); } });
@@ -660,4 +649,3 @@ if (recognition) {
 </script>
 </body>
 </html>
-
