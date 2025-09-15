@@ -186,22 +186,37 @@ const nextBtn = document.getElementById('next-btn');
 
 // --- Speech API Setup ---
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
 let recognition;
 let isRecognizing = false;
 let userInteracted = false; // For autoplay policy
+let synthesisVoices = []; // To store available voices
 
 if (SpeechRecognition) {
   const SR = SpeechRecognition;
   recognition = new SR();
   recognition.lang = 'zh-CN';
   recognition.interimResults = false;
-  recognition.maxAlternatives = 1; // Stability improvement
+  recognition.maxAlternatives = 1;
 } else {
   startErrorEl.textContent = '이 브라우저는 음성 인식을 지원하지 않습니다.';
   recordBtn.disabled = true;
   recordBtn.style.display = 'none';
 }
+
+// Function to load voices
+const loadVoices = () => {
+    synthesisVoices = window.speechSynthesis.getVoices();
+};
+
+// Load voices when they are ready
+if (window.speechSynthesis) {
+    // Some browsers load voices instantly, others need the event
+    loadVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+}
+
 
 // --- Game Data ---
 const weekdays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
@@ -231,38 +246,31 @@ function speak(text, lang = 'zh-CN', callback) {
         return;
     }
 
-    // Stop any currently speaking audio
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = lang;
 
-    // Set a slight delay to ensure voices are loaded, especially on mobile
-    setTimeout(() => {
-        const voices = window.speechSynthesis.getVoices();
-        let chineseVoice = voices.find(voice => voice.lang.startsWith('zh-CN'));
-        
-        // Fallback if no specific mainland Chinese voice is found
-        if (!chineseVoice) {
-            chineseVoice = voices.find(voice => voice.lang.startsWith('zh'));
-        }
-        
-        if (chineseVoice) {
-            utterance.voice = chineseVoice;
-        } else {
-            console.warn("Chinese TTS voice not found. Using default.");
-        }
+    let chineseVoice = synthesisVoices.find(voice => voice.lang.startsWith('zh-CN'));
+    if (!chineseVoice) {
+        chineseVoice = synthesisVoices.find(voice => voice.lang.startsWith('zh'));
+    }
+    
+    if (chineseVoice) {
+        utterance.voice = chineseVoice;
+    } else {
+        console.warn("Chinese TTS voice not found. Using default.");
+    }
 
-        utterance.onend = () => {
-            if (callback) callback();
-        };
-        utterance.onerror = (e) => {
-            console.error("SpeechSynthesisUtterance error", e);
-            if (callback) callback(); // Ensure callback is called even on error
-        };
+    utterance.onend = () => {
+        if (callback) callback();
+    };
+    utterance.onerror = (e) => {
+        console.error("SpeechSynthesisUtterance error", e);
+        if (callback) callback();
+    };
 
-        window.speechSynthesis.speak(utterance);
-    }, 100);
+    window.speechSynthesis.speak(utterance);
 }
 function convertFullPhraseToPinyin(text) { if (!text) return ''; const words = Object.keys(pinyinMap).sort((a, b) => b.length - a.length); let remainingText = text; let pinyinText = ''; while (remainingText.length > 0) { let found = false; for (const word of words) { if (remainingText.startsWith(word)) { pinyinText += pinyinMap[word] + ' '; remainingText = remainingText.substring(word.length); found = true; break; } } if (!found) { let char = remainingText[0]; let numKey = Object.keys(chineseNumbers).find(key => chineseNumbers[key] === char); if(numKey && pinyinMap[numKey]){ pinyinText += pinyinMap[numKey] + ' '; } else { pinyinText += char; } remainingText = remainingText.substring(1); } } return pinyinText.trim().replace(/\s+/g, ' '); }
 function getChineseMinute(minute) { if (minute === 0) return ''; if (minute < 10) return chineseNumbers[minute.toString()]; if (minute === 10) return '十'; if (minute < 20) return '十' + chineseNumbers[(minute % 10).toString()]; const tens = Math.floor(minute / 10); const ones = minute % 10; return chineseNumbers[tens.toString()] + '十' + (ones > 0 ? chineseNumbers[ones.toString()] : ''); }
@@ -662,6 +670,4 @@ if (recognition) {
 </script>
 </body>
 </html>
-
-
 
