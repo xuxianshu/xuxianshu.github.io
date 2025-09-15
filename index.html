@@ -541,6 +541,7 @@ function showFinalResultPopup() {
 
 // --- Event Listeners ---
 startBtn.addEventListener('click', () => {
+    userInteracted = true; // Add this line to explicitly give audio permission
     startNewRound();
 });
 nextBtn.addEventListener('click', () => { if (questionNumberInStage >= QUESTIONS_PER_STAGE) { showStageResultPopup(); } else { questionNumberInStage++; generateNewQuestion(); } });
@@ -649,4 +650,5 @@ if (recognition) {
 </script>
 </body>
 </html>
+
 
