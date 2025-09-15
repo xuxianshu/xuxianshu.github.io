@@ -226,31 +226,43 @@ const MAX_STAGES = 5;
 window.addEventListener('pointerdown', () => { userInteracted = true; }, { once: true });
 
 function speak(text, lang = 'zh-CN', callback) {
-    if (!text || !userInteracted) {
+    if (!text || !userInteracted || !window.speechSynthesis) {
         if (callback) callback();
         return;
     }
 
-    if (window.currentAudio && !window.currentAudio.paused) {
-        window.currentAudio.pause();
-    }
-    const encodedText = encodeURIComponent(text);
-    const audio = new Audio(`https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=${lang}&client=tw-ob`);
-    window.currentAudio = audio;
+    // Stop any currently speaking audio
+    window.speechSynthesis.cancel();
 
-    const onAudioEnd = () => {
-        if (callback) callback();
-        audio.removeEventListener('ended', onAudioEnd);
-        audio.removeEventListener('error', onAudioEnd);
-    };
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
 
-    audio.addEventListener('ended', onAudioEnd);
-    audio.addEventListener('error', onAudioEnd);
+    // Set a slight delay to ensure voices are loaded, especially on mobile
+    setTimeout(() => {
+        const voices = window.speechSynthesis.getVoices();
+        let chineseVoice = voices.find(voice => voice.lang.startsWith('zh-CN'));
+        
+        // Fallback if no specific mainland Chinese voice is found
+        if (!chineseVoice) {
+            chineseVoice = voices.find(voice => voice.lang.startsWith('zh'));
+        }
+        
+        if (chineseVoice) {
+            utterance.voice = chineseVoice;
+        } else {
+            console.warn("Chinese TTS voice not found. Using default.");
+        }
 
-    audio.play().catch(() => {
-        console.error("TTS Audio play() was rejected.");
-        onAudioEnd(); // Ensure callback is called even on play failure
-    });
+        utterance.onend = () => {
+            if (callback) callback();
+        };
+        utterance.onerror = (e) => {
+            console.error("SpeechSynthesisUtterance error", e);
+            if (callback) callback(); // Ensure callback is called even on error
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }, 100);
 }
 function convertFullPhraseToPinyin(text) { if (!text) return ''; const words = Object.keys(pinyinMap).sort((a, b) => b.length - a.length); let remainingText = text; let pinyinText = ''; while (remainingText.length > 0) { let found = false; for (const word of words) { if (remainingText.startsWith(word)) { pinyinText += pinyinMap[word] + ' '; remainingText = remainingText.substring(word.length); found = true; break; } } if (!found) { let char = remainingText[0]; let numKey = Object.keys(chineseNumbers).find(key => chineseNumbers[key] === char); if(numKey && pinyinMap[numKey]){ pinyinText += pinyinMap[numKey] + ' '; } else { pinyinText += char; } remainingText = remainingText.substring(1); } } return pinyinText.trim().replace(/\s+/g, ' '); }
 function getChineseMinute(minute) { if (minute === 0) return ''; if (minute < 10) return chineseNumbers[minute.toString()]; if (minute === 10) return '十'; if (minute < 20) return '十' + chineseNumbers[(minute % 10).toString()]; const tens = Math.floor(minute / 10); const ones = minute % 10; return chineseNumbers[tens.toString()] + '十' + (ones > 0 ? chineseNumbers[ones.toString()] : ''); }
@@ -650,5 +662,6 @@ if (recognition) {
 </script>
 </body>
 </html>
+
 
 
