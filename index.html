@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>요일 말하기 연습</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            touch-action: manipulation;
+        }
+        .game-container {
+            background: linear-gradient(135deg, #fdfcdc, #f0fff0);
+            border: 4px solid #bbf7d0; /* green-200 */
+        }
+        .calendar {
+            background-color: #fef9c3; /* yellow-100 */
+            border: 3px solid #fde047; /* yellow-300 */
+            border-radius: 1rem;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            min-width: 220px;
+        }
+        #record-btn.recording {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(251, 146, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0); }
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .feedback-show {
+            animation: pop-in 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+        }
+        .audio-btn {
+            border-radius: 9999px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="bg-green-50 flex items-center justify-center min-h-screen p-4">
+    <div class="container mx-auto max-w-md">
+        <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 game-container">
+            <header class="text-center mb-4">
+                <h1 class="text-2xl sm:text-3xl font-bold text-green-600">🐼 판다의 시간 탐험대 🕰️</h1>
+                <p class="text-gray-500 mt-1 text-base">달력을 보고 질문에 답해봐요!</p>
+            </header>
+            
+            <section class="flex flex-row flex-wrap items-center justify-center gap-4 mb-4">
+                <div id="calendar-container" class="calendar flex-1 hidden">
+                    <div id="weekday" class="text-6xl font-bold text-yellow-900 py-4">월요일</div>
+                </div>
+            </section>
+            
+            <section id="start-screen" class="text-center py-4">
+                <p class="text-lg mb-4 text-gray-700">총 7개의 요일 퀴즈를 시작합니다!</p>
+                <button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full text-xl transition-transform transform hover:scale-105 shadow-lg">시작!</button>
+                 <p id="start-error" class="text-sm text-red-500 mt-2 h-5"></p>
+            </section>
+
+            <section id="quiz-section" class="hidden">
+                <div id="progress-tracker" class="text-center mb-2 bg-white/50 rounded-lg p-2">
+                    <span id="stage-info" class="font-bold text-green-700"></span> | <span id="question-progress" class="text-gray-600"></span>
+                </div>
+                <div id="mission-card" class="bg-sky-100 border-2 border-sky-300 text-sky-800 p-3 rounded-lg mb-4 text-center shadow-md">
+                    <p class="font-bold text-lg">⭐ 오늘의 질문! ⭐</p>
+                    <div class="mt-2">
+                        <p id="mission-text-hanzi" class="text-xl text-sky-900 font-bold">질문을 기다리고 있어요...</p>
+                        <p id="mission-text-pinyin" class="text-md text-sky-700 mt-1">...</p>
+                    </div>
+                </div>
+
+                <div class="user-response-area mt-2 bg-white p-2 rounded-lg shadow-inner">
+                     <p class="font-bold text-left text-gray-600 text-sm">😄 나 (wǒ):</p>
+                     <input type="text" id="user-input" class="bg-transparent text-gray-800 text-base placeholder-gray-500 w-full text-center outline-none py-1" placeholder="음성으로 답변하세요" readonly>
+                     <p id="user-pinyin" class="text-center text-blue-600 text-base h-6 mt-1"></p>
+                </div>
+
+                <div id="controls" class="text-center mt-4">
+                    <button id="record-btn" class="bg-orange-400 hover:bg-orange-500 text-white font-bold p-3 rounded-full transition-transform transform hover:scale-110 shadow-lg inline-flex items-center justify-center" title="음성으로 답변하기">
+                        <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-1a6 6 0 11-12 0H3a7.001 7.001 0 006 6.93V17H7v1h6v-1h-2v-2.07z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+
+                <p id="feedback" class="mt-2 text-lg font-semibold h-7 text-center"></p>
+
+                <div class="text-center mt-2">
+                    <button id="next-btn" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-5 rounded-full text-base hidden">다음 문제</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- 최종 결과 팝업 -->
+    <div id="final-result-popup" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div id="final-result-content">
+                <header class="text-center mb-4 flex-shrink-0">
+                    <h2 class="text-3xl font-bold text-green-600">🎉 최종 연습 결과 🎉</h2>
+                </header>
+                <div id="final-result-log" class="flex-grow overflow-y-auto space-y-4 pr-2 border-t pt-4 max-h-[50vh]"></div>
+            </div>
+            <footer class="mt-6 text-center flex-shrink-0 space-y-2 sm:space-x-4">
+                <button id="save-result-btn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-full text-lg">결과 이미지로 저장</button>
+                <button id="restart-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full text-xl mt-2 sm:mt-0">다시하기</button>
+                <button id="close-popup-btn" class="text-gray-500 hover:text-gray-700 text-sm mt-2 sm:mt-0">닫기</button>
+            </footer>
+        </div>
+    </div>
+
+<script>
+// DOM Elements
+const stageInfoEl = document.getElementById('stage-info');
+const questionProgressEl = document.getElementById('question-progress');
+const finalResultPopupEl = document.getElementById('final-result-popup');
+const finalResultLogEl = document.getElementById('final-result-log');
+const restartBtn = document.getElementById('restart-btn');
+const closePopupBtn = document.getElementById('close-popup-btn');
+const saveResultBtn = document.getElementById('save-result-btn');
+const finalResultContentEl = document.getElementById('final-result-content');
+const calendarContainerEl = document.getElementById('calendar-container');
+const calendarWeekdayEl = document.getElementById('weekday');
+const startScreenEl = document.getElementById('start-screen');
+const startBtn = document.getElementById('start-btn');
+const startErrorEl = document.getElementById('start-error');
+const quizSectionEl = document.getElementById('quiz-section');
+const missionTextHanziEl = document.getElementById('mission-text-hanzi');
+const missionTextPinyinEl = document.getElementById('mission-text-pinyin');
+const userInputEl = document.getElementById('user-input');
+const userPinyinEl = document.getElementById('user-pinyin');
+const recordBtn = document.getElementById('record-btn');
+const feedbackEl = document.getElementById('feedback');
+const nextBtn = document.getElementById('next-btn');
+
+// --- Speech API Setup ---
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition;
+let isRecognizing = false;
+let userInteracted = false;
+
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.lang = 'zh-CN';
+  recognition.interimResults = false;
+  recognition.continuous = false;
+  recognition.maxAlternatives = 1;
+} else {
+  startErrorEl.textContent = '이 브라우저는 음성 인식을 지원하지 않습니다.';
+  recordBtn.disabled = true;
+  recordBtn.style.display = 'none';
+}
+
+// --- Game Data ---
+const weekdaysChinese = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+const weekdaysKorean = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+const pinyinMap = {
+    '今天': 'jīntiān', '星期': 'xīngqī', '星期天': 'xīngqītiān',
+    '一': 'yī', '二': 'èr', '三': 'sān', '四': 'sì',
+    '五': 'wǔ', '六': 'liù', '日': 'rì'
+};
+
+// --- Game State ---
+let currentQuestion = {};
+let practiceLog = [];
+let questionNumber = 1;
+const TOTAL_QUESTIONS = 7;
+let shuffledWeekdays = [];
+
+// --- Helper Functions ---
+window.addEventListener('pointerdown', () => { userInteracted = true; }, { once: true });
+
+// speak 함수를 브라우저 내장 Web Speech API로 교체합니다.
+function speak(text, lang = 'zh-CN', callback) {
+    if (!text || !userInteracted || !window.speechSynthesis) {
+        if (callback) callback();
+        return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+    utterance.onend = () => {
+        if (callback) {
+            callback();
+        }
+    };
+    utterance.onerror = (event) => {
+        console.error('SpeechSynthesis Error:', event.error);
+        if (callback) {
+            callback();
+        }
+    };
+    window.speechSynthesis.speak(utterance);
+}
+
+function convertToPinyin(text) {
+    if (!text) return '';
+    const words = Object.keys(pinyinMap).sort((a, b) => b.length - a.length);
+    let remainingText = text.replace(/[.,。]/g, '');
+    let pinyinText = '';
+    while (remainingText.length > 0) {
+        let found = false;
+        for (const word of words) {
+            if (remainingText.startsWith(word)) {
+                pinyinText += pinyinMap[word] + ' ';
+                remainingText = remainingText.substring(word.length);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            pinyinText += remainingText[0];
+            remainingText = remainingText.substring(1);
+        }
+    }
+    pinyinText = pinyinText.trim();
+    if (pinyinText.length > 0) {
+        pinyinText = pinyinText.charAt(0).toUpperCase() + pinyinText.slice(1);
+    }
+    return pinyinText;
+}
+
+function updateCalendar(dayOfWeekIndex) {
+    calendarWeekdayEl.textContent = weekdaysKorean[dayOfWeekIndex];
+}
+
+function updateProgressTracker() {
+    stageInfoEl.textContent = `요일 말하기 연습`;
+    questionProgressEl.textContent = `문제 ${questionNumber}/${TOTAL_QUESTIONS}`;
+}
+
+// --- Core Game Logic ---
+function generateNewQuestion() {
+    calendarContainerEl.classList.remove('hidden');
+    const dayOfWeekIndex = shuffledWeekdays[questionNumber - 1];
+    updateCalendar(dayOfWeekIndex);
+    
+    const questionText = "今天星期几？";
+    const questionPinyin = "Jīntiān xīngqī jǐ?";
+    let answerText = `今天${weekdaysChinese[dayOfWeekIndex]}`;
+    let altAnswerText = (dayOfWeekIndex === 0) ? "今天星期天" : null;
+
+    currentQuestion = { questionText, questionPinyin, answerText, altAnswerText, dayOfWeekIndex };
+
+    missionTextHanziEl.textContent = questionText;
+    missionTextPinyinEl.textContent = questionPinyin;
+    userInputEl.value = "";
+    userPinyinEl.textContent = "";
+    feedbackEl.className = 'mt-2 text-lg font-semibold h-7 text-center';
+    feedbackEl.textContent = "";
+    recordBtn.disabled = true;
+    nextBtn.classList.add('hidden');
+    updateProgressTracker();
+
+    speak(questionText, 'zh-CN', () => {
+        recordBtn.disabled = false;
+    });
+}
+
+function validateAnswer(transcript) {
+    transcript = transcript.replace(/[.,。]/g, '').trim();
+    const q = currentQuestion;
+    return transcript === q.answerText || (q.altAnswerText && transcript === q.altAnswerText);
+}
+
+function startNewRound() {
+    practiceLog = [];
+    questionNumber = 1;
+
+    const weekdayIndices = [0, 1, 2, 3, 4, 5, 6];
+    for (let i = weekdayIndices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [weekdayIndices[i], weekdayIndices[j]] = [weekdayIndices[j], weekdayIndices[i]];
+    }
+    shuffledWeekdays = weekdayIndices;
+    
+    quizSectionEl.classList.remove('hidden');
+    startScreenEl.classList.add('hidden');
+    generateNewQuestion();
+}
+
+function renderResultLog(logContainer, logs) {
+    logContainer.innerHTML = '';
+    logs.forEach(log => {
+        const logWrapper = document.createElement('div');
+        const icon = log.isCorrect ? '✅' : '❌';
+        const colorClass = log.isCorrect ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300';
+        let modelAnswer = log.question.answerText;
+
+        logWrapper.innerHTML = `
+        <div class="p-3 rounded-lg border-2 ${colorClass} space-y-2">
+            <p class="font-bold text-gray-700">[${weekdaysKorean[log.question.dayOfWeekIndex]}]</p>
+            
+            <div class="bg-white/50 p-2 rounded-md flex justify-between items-center">
+                <div>
+                    <p class="font-bold text-sky-800">⭐ 질문</p>
+                    <p>${log.question.questionText}</p>
+                </div>
+                <button data-tts-text="${log.question.questionText}" class="play-tts-audio-btn audio-btn p-2 bg-sky-500 hover:bg-sky-600" title="질문 다시 듣기">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"></path></svg>
+                </button>
+            </div>
+
+            <div class="bg-white/50 p-2 rounded-md">
+                <p class="font-bold text-gray-800">😄 나의 답변 ${icon}</p>
+                <p class="my-1">${log.transcript || '(음성 인식 실패)'}</p>
+                <div class="flex justify-between items-center mt-2">
+                     <div>
+                        <p class="font-bold text-emerald-800">💡 모범 답안</p>
+                        <p>${modelAnswer}</p>
+                     </div>
+                     <button data-tts-text="${modelAnswer}" class="play-tts-audio-btn audio-btn p-2 bg-emerald-500 hover:bg-emerald-600" title="모범 답안 듣기">
+                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"></path></svg>
+                     </button>
+                </div>
+            </div>
+        </div>`;
+        logContainer.appendChild(logWrapper);
+    });
+}
+
+function showFinalResultPopup() {
+    const sortedLogs = [...practiceLog].sort((a, b) => {
+        const dayA = a.question.dayOfWeekIndex === 0 ? 7 : a.question.dayOfWeekIndex;
+        const dayB = b.question.dayOfWeekIndex === 0 ? 7 : b.question.dayOfWeekIndex;
+        return dayA - dayB;
+    });
+    renderResultLog(finalResultLogEl, sortedLogs);
+    finalResultPopupEl.classList.remove('hidden');
+    finalResultPopupEl.classList.add('flex');
+}
+
+// --- Event Listeners ---
+startBtn.addEventListener('click', startNewRound);
+nextBtn.addEventListener('click', () => {
+    questionNumber++;
+    if (questionNumber > TOTAL_QU
